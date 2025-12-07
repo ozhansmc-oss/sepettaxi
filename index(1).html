@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>SepetTaxi - Ücretsiz Haritalı Taksi Çağır</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+body { margin:0; font-family:Arial, sans-serif; background:#fff;}
+header { background:#000; color:#fff; padding:15px; text-align:center; font-size:20px; }
+#map { height:50vh; }
+.panel { padding:15px; }
+.btn { width:100%; padding:14px; margin-top:10px; border-radius:10px; border:none; background:#000; color:#fff; font-size:16px; }
+.btn.green { background:#25D366; }
+.info { margin-top:8px; }
+.price { font-size:20px; font-weight:bold; margin-top:10px; }
+</style>
+</head>
+<body>
+<header>SepetTaxi</header>
+<div id="map"></div>
+<div class="panel">
+<button class="btn" onclick="setMode('pickup')">📍 Bulunduğun Konumu Seç</button>
+<div id="pickupText" class="info">Seçilmedi</div>
+<button class="btn" onclick="setMode('dropoff')">🎯 Varış Noktasını Seç</button>
+<div id="dropoffText" class="info">Seçilmedi</div>
+<button class="btn" onclick="calculate()">💳 Mesafe & Ücret Hesapla</button>
+<div id="distanceInfo" class="info"></div>
+<div id="priceInfo" class="price"></div>
+<a id="waLink" href="#" target="_blank" style="display:none;">
+<button class="btn green">WhatsApp ile Taksi Çağır</button>
+</a>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+let map = L.map('map').setView([40.195, 29.060], 12);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+
+let pickup=null, dropoff=null, pickupMarker=null, dropoffMarker=null, mode=null;
+
+function setMode(m){ mode=m; alert(m==="pickup"?"Konumu seç":"Varış noktasını seç"); }
+
+map.on('click', function(e) {
+  if(!mode){ alert("Önce seçim yap"); return;}
+  if(mode==="pickup"){
+    if(pickupMarker) map.removeLayer(pickupMarker);
+    pickupMarker = L.marker(e.latlng).addTo(map).bindPopup("Konum").openPopup();
+    pickup=e.latlng;
+    document.getElementById("pickupText").innerText="Konum seçildi ✔";
+  }
+  if(mode==="dropoff"){
+    if(dropoffMarker) map.removeLayer(dropoffMarker);
+    dropoffMarker = L.marker(e.latlng).addTo(map).bindPopup("Varış").openPopup();
+    dropoff=e.latlng;
+    document.getElementById("dropoffText").innerText="Varış seçildi ✔";
+  }
+});
+
+function calculate(){
+  if(!pickup || !dropoff){ alert("İki noktayı da seç"); return; }
+
+  function distance(lat1, lon1, lat2, lon2){
+    const R=6371;
+    const dLat=(lat2-lat1)*Math.PI/180;
+    const dLon=(lon2-lon1)*Math.PI/180;
+    const a=Math.sin(dLat/2)*Math.sin(dLat/2)+
+            Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+            Math.sin(dLon/2)*Math.sin(dLon/2);
+    const c=2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    return R*c;
+  }
+
+  let km = distance(pickup.lat, pickup.lng, dropoff.lat, dropoff.lng);
+  let price = 30 + km*20; if(price<80) price=80;
+
+  document.getElementById("distanceInfo").innerText="Mesafe: "+km.toFixed(1)+" km";
+  document.getElementById("priceInfo").innerText="Tahmini Ücret: "+price.toFixed(0)+" TL";
+
+  let msg = `SepetTaxi çağırıyorum.%0AKonum: https://maps.google.com/?q=${pickup.lat},${pickup.lng}%0AVarış: https://maps.google.com/?q=${dropoff.lat},${dropoff.lng}%0AÜcret: ${price.toFixed(0)} TL`;
+  
+  let waNumber = "905060960890";
+  let wa = document.getElementById("waLink");
+  wa.href = "https://wa.me/"+waNumber+"?text="+msg;
+  wa.style.display="block";
+}
+</script>
+</body>
+</html>
